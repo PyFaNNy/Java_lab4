@@ -123,5 +123,27 @@ public class MainFrame extends JFrame {
     }
 
 
+    private class GraphicsMenuListener implements MenuListener {
+        private GraphicsMenuListener() {
+        }
 
+        public void menuCanceled(MenuEvent arg0) {
+        }
+
+        public void menuDeselected(MenuEvent arg0) {
+        }
+
+        public void menuSelected(MenuEvent arg0) {
+            MainFrame.this.showAxisMenuItem.setEnabled(MainFrame.this.fileLoaded);
+            MainFrame.this.showMarkersMenuItem.setEnabled(MainFrame.this.fileLoaded);
+            MainFrame.this.saveToTextMenuItem.setEnabled(MainFrame.this.fileLoaded);
+        }
+    }
+
+
+    public static void main(String[] args) {
+        MainFrame frame = new MainFrame();
+        frame.setDefaultCloseOperation(3);
+        frame.setVisible(true);
+    }
 }
