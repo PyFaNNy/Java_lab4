@@ -100,5 +100,28 @@ public class MainFrame extends JFrame {
         this.getContentPane().add(this.display, "Center");
     }
 
-   
+    protected void openGraphics(File selectedFile) {
+        try {
+            DataInputStream in = new DataInputStream(new FileInputStream(selectedFile));
+            ArrayList graphicsData = new ArrayList(50);
+
+            while(in.available() > 0) {
+                Double x = in.readDouble();
+                Double y = in.readDouble();
+                graphicsData.add(new Double[]{x, y});
+            }
+
+            if (graphicsData.size() > 0) {
+                this.fileLoaded = true;
+                this.resetGraphicsMenuItem.setEnabled(true);
+                this.display.showGraphics(graphicsData);
+            }
+        } catch (FileNotFoundException var6) {
+        } catch (IOException var7) {
+        }
+
+    }
+
+
+
 }
