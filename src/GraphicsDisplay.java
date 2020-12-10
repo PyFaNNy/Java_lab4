@@ -358,5 +358,148 @@ public class GraphicsDisplay extends JPanel {
         }
     }
 
+    private void paintSelection(Graphics2D canvas) {
+        if (this.scaleMode) {
+            canvas.setStroke(this.selectionStroke);
+            canvas.setColor(Color.BLACK);
+            canvas.draw(this.selectionRect);
+        }
+    }
 
+    public void reset() {
+        this.showGraphics(this.originalData);
+    }
+
+    protected int findSelectedPoint(int x, int y) {
+        if (this.graphicsData == null) {
+            return -1;
+        } else {
+            int pos = 0;
+
+            for(Iterator var5 = this.graphicsData.iterator(); var5.hasNext(); ++pos) {
+                Double[] point = (Double[])var5.next();
+                java.awt.geom.Point2D.Double screenPoint = this.xyToPoint(point[0], point[1]);
+                double distance = (screenPoint.getX() - (double)x) * (screenPoint.getX() - (double)x) + (screenPoint.getY() - (double)y) * (screenPoint.getY() - (double)y);
+                if (distance < 100.0D) {
+                    return pos;
+                }
+            }
+            return -1;
+        }
+    }
+
+    public void saveToTextFile(File selectedFile) {
+        try {
+            PrintStream out = new PrintStream(selectedFile);
+            out.println("Результаты скорректированых значений");
+            Iterator var4 = this.graphicsData.iterator();
+
+            while(var4.hasNext()) {
+                Double[] point = (Double[])var4.next();
+                out.println(point[0] + " " + point[1]);
+            }
+
+            out.close();
+        } catch (FileNotFoundException var5) {
+        }
+
+    }
+
+    public class MouseHandler extends MouseAdapter {
+        public MouseHandler() {
+        }
+
+        public void mouseClicked(MouseEvent ev) {
+            if (ev.getButton() == 3) {
+                if (GraphicsDisplay.this.undoHistory.size() > 0) {
+                    GraphicsDisplay.this.viewport = GraphicsDisplay.this.undoHistory.get(GraphicsDisplay.this.undoHistory.size() - 1);
+                    GraphicsDisplay.this.undoHistory.remove(GraphicsDisplay.this.undoHistory.size() - 1);
+                } else {
+                    GraphicsDisplay.this.zoomToRegion(GraphicsDisplay.this.minX, GraphicsDisplay.this.maxY, GraphicsDisplay.this.maxX, GraphicsDisplay.this.minY);
+                }
+
+                GraphicsDisplay.this.repaint();
+            }
+
+        }
+
+        public void mousePressed(MouseEvent ev) {
+            if (ev.getButton() == 1) {
+                GraphicsDisplay.this.selectedMarker = GraphicsDisplay.this.findSelectedPoint(ev.getX(), ev.getY());
+                GraphicsDisplay.this.originalPoint = GraphicsDisplay.this.translatePointToXY(ev.getX(), ev.getY());
+                if (GraphicsDisplay.this.selectedMarker >= 0) {
+                    GraphicsDisplay.this.changeMode = true;
+                    GraphicsDisplay.this.setCursor(Cursor.getPredefinedCursor(8));
+                } else {
+                    GraphicsDisplay.this.scaleMode = true;
+                    GraphicsDisplay.this.setCursor(Cursor.getPredefinedCursor(5));
+                    GraphicsDisplay.this.selectionRect.setFrame(ev.getX(), ev.getY(), 1.0D, 1.0D);
+                }
+
+            }
+        }
+
+        public void mouseReleased(MouseEvent ev) {
+            if (ev.getButton() == 1) {
+                GraphicsDisplay.this.setCursor(Cursor.getPredefinedCursor(0));
+                if (GraphicsDisplay.this.changeMode) {
+                    GraphicsDisplay.this.changeMode = false;
+                } else {
+                    GraphicsDisplay.this.scaleMode = false;
+                    double[] finalPoint = GraphicsDisplay.this.translatePointToXY(ev.getX(), ev.getY());
+                    GraphicsDisplay.this.undoHistory.add(GraphicsDisplay.this.viewport);
+                    GraphicsDisplay.this.viewport = new double[2][2];
+                    GraphicsDisplay.this.zoomToRegion(GraphicsDisplay.this.originalPoint[0], GraphicsDisplay.this.originalPoint[1], finalPoint[0], finalPoint[1]);
+                    GraphicsDisplay.this.repaint();
+                }
+            }
+        }
+    }
+
+    public class MouseMotionHandler implements MouseMotionListener {
+        public MouseMotionHandler() {
+        }
+
+        public void mouseDragged(MouseEvent ev) {
+            if (GraphicsDisplay.this.changeMode) {
+                double[] currentPoint = GraphicsDisplay.this.translatePointToXY(ev.getX(), ev.getY());
+                double newY = (GraphicsDisplay.this.graphicsData.get(GraphicsDisplay.this.selectedMarker))[1] + (currentPoint[1] - (GraphicsDisplay.this.graphicsData.get(GraphicsDisplay.this.selectedMarker))[1]);
+                if (newY > GraphicsDisplay.this.viewport[0][1]) {
+                    newY = GraphicsDisplay.this.viewport[0][1];
+                }
+
+                if (newY < GraphicsDisplay.this.viewport[1][1]) {
+                    newY = GraphicsDisplay.this.viewport[1][1];
+                }
+
+                (GraphicsDisplay.this.graphicsData.get(GraphicsDisplay.this.selectedMarker))[1] = newY;
+                GraphicsDisplay.this.repaint();
+            } else {
+                double width = (double)ev.getX() - GraphicsDisplay.this.selectionRect.getX();
+                if (width < 5.0D) {
+                    width = 5.0D;
+                }
+
+                double height = (double)ev.getY() - GraphicsDisplay.this.selectionRect.getY();
+                if (height < 5.0D) {
+                    height = 5.0D;
+                }
+
+                GraphicsDisplay.this.selectionRect.setFrame(GraphicsDisplay.this.selectionRect.getX(), GraphicsDisplay.this.selectionRect.getY(), width, height);
+                GraphicsDisplay.this.repaint();
+            }
+
+        }
+
+        public void mouseMoved(MouseEvent ev) {
+            GraphicsDisplay.this.selectedMarker = GraphicsDisplay.this.findSelectedPoint(ev.getX(), ev.getY());
+            if (GraphicsDisplay.this.selectedMarker >= 0) {
+                GraphicsDisplay.this.setCursor(Cursor.getPredefinedCursor(8));
+            } else {
+                GraphicsDisplay.this.setCursor(Cursor.getPredefinedCursor(0));
+            }
+
+            GraphicsDisplay.this.repaint();
+        }
+    }
 }
